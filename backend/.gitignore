@@ -1,0 +1,7 @@
+.env
+/services/__init__.py
+/models/__init__.py
+/core/__init__.py
+/api/routes/__init__.py
+/api/__init__.py
+/utils/__init__.py
