@@ -32,6 +32,7 @@ export default function App() {
     try {
       const res = await fetch(API_URL, { method: "POST", body: formData });
       const data = await res.json();
+      console.log("Receipt validation response:", data);
       setResult(data);
     } catch {
       setError("Failed to reach the server. Make sure the backend is running on port 8001.");

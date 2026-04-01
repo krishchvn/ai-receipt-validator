@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from fastapi import UploadFile
-from PIL import Image
+from fastapi import UploadFile, HTTPException
+from PIL import Image, UnidentifiedImageError
 from pdf2image import convert_from_bytes
 import fitz  # PyMuPDF
 import io
@@ -18,7 +18,13 @@ async def process_file(file: UploadFile) -> tuple[str, Image.Image | str]:
     if file.content_type == "application/pdf":
         return _process_pdf(contents)
 
-    return "image", Image.open(io.BytesIO(contents)).convert("RGB")
+    try:
+        return "image", Image.open(io.BytesIO(contents)).convert("RGB")
+    except UnidentifiedImageError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not read image file '{file.filename}'. The file may be corrupt or an unsupported format.",
+        )
 
 
 def _process_pdf(contents: bytes) -> tuple[str, Image.Image | str]:
