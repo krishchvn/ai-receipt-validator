@@ -1,8 +1,8 @@
 # API Reference
 
-Base URL: `http://localhost:8001`
+Base URL: `https://ai-receipt-validator.onrender.com/`
 
-Interactive docs (Swagger UI): `http://localhost:8001/docs`
+Interactive docs (Swagger UI): `https://ai-receipt-validator.onrender.com/docs`
 
 ---
 
@@ -29,7 +29,7 @@ Validates a receipt image or PDF.
 **Example (curl):**
 
 ```bash
-curl -X POST http://localhost:8001/api/v1/validate \
+curl -X POST https://ai-receipt-validator.onrender.com/api/v1/validate \
   -F "file=@receipt.jpg;type=image/jpeg" | python3 -m json.tool
 ```
 

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import "./App.css";
 
-const API_URL = "http://localhost:8001/api/v1/validate";
+const API_URL = "https://ai-receipt-validator.onrender.com/api/v1/validate";
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/tiff", "image/bmp", "application/pdf"];
 const MAX_FILES = 3;
 

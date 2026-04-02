@@ -91,8 +91,8 @@ Start the server:
 uvicorn main:app --reload --port 8001
 ```
 
-Backend runs at: `http://localhost:8001`
-Interactive API docs: `http://localhost:8001/docs`
+Backend runs at: `https://ai-receipt-validator.onrender.com/`
+Interactive API docs: `https://ai-receipt-validator.onrender.com/docs`
 
 ### Frontend
 
