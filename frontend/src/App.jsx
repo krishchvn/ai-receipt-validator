@@ -3,37 +3,46 @@ import "./App.css";
 
 const API_URL = "http://localhost:8001/api/v1/validate";
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/tiff", "image/bmp", "application/pdf"];
+const MAX_FILES = 3;
 
-const STATUS = { IDLE: "idle", UPLOADING: "uploading", VALIDATING: "validating", DONE: "done" };
+const STATUS = { IDLE: "idle", VALIDATING: "validating", DONE: "done" };
 
 export default function App() {
   const [status, setStatus] = useState(STATUS.IDLE);
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState([]);
+  const [fileNames, setFileNames] = useState([]);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
-  const [fileName, setFileName] = useState(null);
   const inputRef = useRef();
 
-  async function handleFile(file) {
-    if (!file) return;
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setError(`Unsupported file type. Please upload JPG, PNG, WebP, TIFF, BMP or PDF.`);
+  async function handleFiles(files) {
+    const fileList = Array.from(files);
+    if (fileList.length === 0) return;
+
+    if (fileList.length > MAX_FILES) {
+      alert(`You can only upload up to ${MAX_FILES} files at once. You selected ${fileList.length}.`);
       return;
     }
+
+    const invalid = fileList.find(f => !ACCEPTED_TYPES.includes(f.type));
+    if (invalid) {
+      setError(`Unsupported file type: ${invalid.name}. Please upload JPG, PNG, WebP, TIFF, BMP or PDF.`);
+      return;
+    }
+
     setError(null);
-    setResult(null);
-    setFileName(file.name);
-    setStatus(STATUS.UPLOADING);
+    setResults([]);
+    setFileNames(fileList.map(f => f.name));
+    setStatus(STATUS.VALIDATING);
 
     const formData = new FormData();
-    formData.append("file", file);
+    fileList.forEach(f => formData.append("files", f));
 
-    setStatus(STATUS.VALIDATING);
     try {
       const res = await fetch(API_URL, { method: "POST", body: formData });
       const data = await res.json();
       console.log("Receipt validation response:", data);
-      setResult(data);
+      setResults(data);
     } catch {
       setError("Failed to reach the server. Make sure the backend is running on port 8001.");
     } finally {
@@ -42,30 +51,28 @@ export default function App() {
   }
 
   function handleInputChange(e) {
-    handleFile(e.target.files[0]);
+    handleFiles(e.target.files);
     e.target.value = "";
   }
 
   function handleDrop(e) {
     e.preventDefault();
     setDragOver(false);
-    handleFile(e.dataTransfer.files[0]);
+    handleFiles(e.dataTransfer.files);
   }
 
   function handleReset() {
     setStatus(STATUS.IDLE);
-    setResult(null);
+    setResults([]);
+    setFileNames([]);
     setError(null);
-    setFileName(null);
   }
-
-  const isLoading = status === STATUS.UPLOADING || status === STATUS.VALIDATING;
 
   return (
     <div className="app">
       <div className="card">
         <h1 className="title">Receipt Validator</h1>
-        <p className="subtitle">Upload a receipt image or PDF to validate it</p>
+        <p className="subtitle">Upload up to {MAX_FILES} receipts at once</p>
 
         {status === STATUS.IDLE && (
           <div
@@ -77,24 +84,27 @@ export default function App() {
           >
             <div className="dropzone-icon">📄</div>
             <p className="dropzone-text">Drag & drop or <span className="link">browse</span></p>
-            <p className="dropzone-hint">JPG, PNG, WebP, TIFF, BMP, PDF</p>
+            <p className="dropzone-hint">JPG, PNG, WebP, TIFF, BMP, PDF · max {MAX_FILES} files</p>
             <input
               ref={inputRef}
               type="file"
               accept=".jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf"
+              multiple
               onChange={handleInputChange}
               hidden
             />
           </div>
         )}
 
-        {isLoading && (
+        {status === STATUS.VALIDATING && (
           <div className="loader-container">
             <div className="spinner" />
-            <p className="loader-text">
-              {status === STATUS.UPLOADING ? "Uploading receipt…" : "Validating receipt…"}
-            </p>
-            {fileName && <p className="loader-filename">{fileName}</p>}
+            <p className="loader-text">Validating {fileNames.length} receipt{fileNames.length > 1 ? "s" : ""}…</p>
+            <div className="file-list">
+              {fileNames.map((name, i) => (
+                <p key={i} className="loader-filename">{name}</p>
+              ))}
+            </div>
           </div>
         )}
 
@@ -107,21 +117,32 @@ export default function App() {
           </div>
         )}
 
-        {status === STATUS.DONE && result && !error && (
-          <ResultCard result={result} onReset={handleReset} />
+        {status === STATUS.DONE && results.length > 0 && !error && (
+          <div className="results-list">
+            {results.map((result, i) => (
+              <ResultCard key={i} result={result} fileName={fileNames[i]} />
+            ))}
+            <button className="btn" onClick={handleReset}>Validate More</button>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function ResultCard({ result, onReset }) {
+function ResultCard({ result, fileName }) {
   const accepted = result.is_accepted;
 
   return (
     <div className={`result-card ${accepted ? "accepted" : "rejected"}`}>
-      <div className="result-icon">{accepted ? "✓" : "✕"}</div>
-      <h2 className="result-title">{accepted ? "Receipt Accepted" : "Receipt Rejected"}</h2>
+      <div className="result-header">
+        <div className="result-icon">{accepted ? "✓" : "✕"}</div>
+        <div>
+          <h2 className="result-title">{accepted ? "Accepted" : "Rejected"}</h2>
+          {fileName && <p className="result-filename">{fileName}</p>}
+        </div>
+      </div>
+
       {result.merchant && <p className="result-merchant">{result.merchant}</p>}
 
       <div className="result-grid">
@@ -159,8 +180,6 @@ function ResultCard({ result, onReset }) {
           <span>⚠</span> {result.warning}
         </div>
       )}
-
-      <button className="btn" onClick={onReset}>Validate Another</button>
     </div>
   );
 }
