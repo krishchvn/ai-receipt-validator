@@ -37,5 +37,5 @@ def _process_pdf(contents: bytes) -> tuple[str, Image.Image | str]:
         return "text", text
 
     # Scanned PDF — convert first page to image
-    pages = convert_from_bytes(contents, dpi=200)
+    pages = convert_from_bytes(contents, dpi=150)
     return "image", pages[0]

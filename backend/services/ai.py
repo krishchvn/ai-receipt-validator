@@ -32,7 +32,7 @@ PROMPT = """Analyze this receipt and respond with ONLY a JSON object — no expl
 
 For fraud_signals, only flag structurally or mathematically provable issues:
 - "high": totals appear fabricated, amounts have been altered, tax manipulation to change the final total
-- "mid": total does not add up, subtotal inconsistent with line items
+- "mid": total does not add up
 - "low": missing merchant name or date, illegible sections
 
 Do NOT flag: round number prices, unusual tax rates, inconsistent fonts, or handwritten style — these are normal receipt characteristics.
@@ -42,6 +42,8 @@ If this is not a receipt, set is_receipt to false and all other fields to null o
 
 
 def _parse_response(text: str) -> dict:
+    if not text:
+        raise ValueError("Model returned an empty response.")
     text = text.strip()
     if "```" in text:
         text = text.split("```")[1]
@@ -50,9 +52,14 @@ def _parse_response(text: str) -> dict:
     return json.loads(text.strip())
 
 
+MAX_SIDE = 1024
+
 def _image_to_base64(image: Image.Image) -> str:
+    if max(image.width, image.height) > MAX_SIDE:
+        image = image.copy()
+        image.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
     buffer = io.BytesIO()
-    image.save(buffer, format="JPEG")
+    image.save(buffer, format="JPEG", quality=85)
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
@@ -78,4 +85,6 @@ async def extract_receipt_data(input_type: str, content: Image.Image | str) -> R
 
     response = await client.chat.completions.create(model=MODEL, messages=messages)
     data = _parse_response(response.choices[0].message.content)
+    data["line_items"] = data.get("line_items") or []
+    data["fraud_signals"] = data.get("fraud_signals") or []
     return ReceiptData(**data)

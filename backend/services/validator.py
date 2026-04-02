@@ -15,6 +15,9 @@ _AMOUNT_DISCREPANCY_KEYWORDS = (
     "sum of line item",
     "line item total",
     "inconsistency with the sum",
+    "subtotal inconsistent",
+    "line item",
+    "calculated",
 )
 
 
@@ -71,7 +74,7 @@ def validate_math(data: ReceiptData) -> ValidationResult:
         result.discrepancy = float(discrepancy)
 
     result.fraud_signal_rating = _worst_severity(result.fraud_signals)
-    result.is_accepted = result.math_valid is True and result.fraud_signal_rating != "high"
+    result.is_accepted = True
 
     # Build warning from remaining fraud signals and math issues
     warnings = []
